@@ -174,8 +174,8 @@ function Create() {
         elevation={3}
         sx={{
           p: 4,
-          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.8) 100%)',
-          backdropFilter: 'blur(10px)',
+          background: 'black',
+          color: 'white',
           borderRadius: '16px',
         }}
       >
@@ -192,7 +192,7 @@ function Create() {
             value={content}
             onChange={handleContentChange}
             variant="outlined"
-            placeholder="Start typing what you want to hear..."
+            placeholder="Start typing what you want to hear..." sx={{ color: 'black', '::placeholder': { color: 'black' } }}
           />
 
           <FormControl fullWidth>
@@ -223,6 +223,8 @@ function Create() {
                 '&:hover': {
                   background: 'linear-gradient(45deg, #FF3333 30%, #FF6666 90%)',
                 },
+                background: 'black',
+                color: 'white',
               }}
             >
               {isGenerating ? 'Generating...' : isPlaying ? 'Stop' : 'Preview'}
