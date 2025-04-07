@@ -30,6 +30,13 @@ npm run dev
 - Multiple voice options
 - Content generation capability
 - Real-time audio playback
+- 
+## Screenshots
+<img width="500" alt="Screenshot 2025-04-07 at 3 42 49 AM" src="https://github.com/user-attachments/assets/4b9f7a1a-9abb-46dd-8c07-6fbe3c8780ae" />
+<img width="500" alt="Screenshot 2025-04-07 at 3 43 32 AM" src="https://github.com/user-attachments/assets/2ad805f6-329a-4416-8679-ad92984cfb5a" />
+<img width="500" alt="Screenshot 2025-04-07 at 7 17 24 PM" src="https://github.com/user-attachments/assets/7502b079-1eee-46e4-892c-30e68fef19e0" />
+
+
 
 ## Usage
 
