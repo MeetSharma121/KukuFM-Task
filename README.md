@@ -1,64 +1,47 @@
-# KukuFM AI – Personalized Audio at Scale
+# KuKu FM Text-to-Speech Application
 
-Welcome to KukuFM AI, a next-gen AI-powered platform that lets users co-create their own personalized audio experiences. Whether you're in the mood to learn, be inspired, or simply relax, KukuFM AI delivers smart, emotionally resonant content in seconds.
+A React application that uses OpenAI's API to generate content and convert text to speech.
 
-## Getting Started
+## Setup
 
-### Installation Steps
-Clone the repository
-```bash
-git clone https://github.com/MeetSharma121/KukuFM-Task.git
-```
-Navigate into the project folder
-```bash
-cd KukuFM-AI
-```
-Install all dependencies
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-### Launch the App
-Start the development server:
+2. Install OpenAI package:
+```bash
+npm install openai
+```
+
+3. Create a `.env` file in the root directory and add your OpenAI API key:
+```
+VITE_OPENAI_API_KEY=your-api-key-here
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 ```
-Then open your browser and visit:
-🌐 http://localhost:5176
 
 ## Features
 
-- 🎙️ AI-Powered Story Generator – Create dynamic audio content using user input, mood, and goals.
-- 🗣️ Voice Customization – Choose from soothing, energetic, or regional AI voices.
-- 🔁 Smart Recommendations – Personalized prompts based on listening habits and feedback.
-- 🏆 Gamification Layer – Earn streaks, badges, and share your creations with the world.
-- 🌍 Multi-language Support – Localized storytelling in your favorite language.
+- Text-to-speech conversion using OpenAI's API
+- Multiple voice options
+- Content generation capability
+- Real-time audio playback
 
-## Tech Stack
+## Usage
 
-- ⚛️ React – Frontend library for building a responsive user interface.
-- ⚡ Vite – Ultra-fast build tool for modern web projects.
-- 🎨 Material-UI – Component library for sleek and accessible design.
-- 🤖 Generative AI (GPT-4) – For story generation and language processing.
-- 🔊 Voice AI (TTS Engines) – To bring text-based stories to life in real time.
+1. Enter text in the content field or let the AI generate content for you
+2. Select a voice from the dropdown menu
+3. Click the Preview button to generate and play the audio
+4. Use the stop button to stop playback
 
-## Screenshots
+## Environment Variables
 
-(Include mockup or UI screenshots here for visual impact.)
+- `VITE_OPENAI_API_KEY`: Your OpenAI API key (required)
 
-## License
+## Important Note
 
-This project is licensed under the MIT License.
-Feel free to use, modify, and share — just give credit where it's due!
-
-## Contributing
-
-We welcome contributions!
-Please open an issue or create a pull request to suggest improvements or fixes.
-
-## Final Note
-
-Thank you for exploring KukuFM AI.
-Let’s redefine how people listen, learn, and connect with audio.
-
-💡 “The future of audio isn’t just heard—it’s created by you.”
+Make sure to keep your OpenAI API key secure and never commit it to version control.

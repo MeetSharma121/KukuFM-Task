@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Box,
   Button,
@@ -10,9 +10,15 @@ import {
   Select,
   MenuItem,
   Stack,
+  Alert,
+  IconButton,
+  CircularProgress,
 } from '@mui/material'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import StopIcon from '@mui/icons-material/Stop'
+import MicIcon from '@mui/icons-material/Mic'
+import MicOffIcon from '@mui/icons-material/MicOff'
+import { generateContent, generateSpeech } from '../services/openai'
 
 const voices = [
   { id: 'voice1', name: 'Sarah', accent: 'American' },
@@ -23,9 +29,15 @@ const voices = [
 
 function Create() {
   const [content, setContent] = useState('')
-  const [selectedVoice, setSelectedVoice] = useState('')
+  const [aiResponse, setAiResponse] = useState('')
+  const [selectedVoice, setSelectedVoice] = useState('alloy')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [error, setError] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioStream, setAudioStream] = useState(null)
+  const audioRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
 
   const handleContentChange = (event) => {
     setContent(event.target.value)
@@ -35,15 +47,110 @@ function Create() {
     setSelectedVoice(event.target.value)
   }
 
-  const handlePlayPause = () => {
-    if (!isPlaying) {
-      setIsGenerating(true)
-      // Simulate AI audio generation
-      setTimeout(() => {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      setAudioStream(stream)
+      
+      const mediaRecorder = new MediaRecorder(stream)
+      mediaRecorderRef.current = mediaRecorder
+      
+      const audioChunks = []
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data)
+      }
+      
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' })
+        const reader = new FileReader()
+        reader.readAsDataURL(audioBlob)
+        reader.onloadend = async () => {
+          const base64Audio = reader.result
+          // Here you would typically send this to a speech-to-text API
+          // For now, we'll just set it as content
+          setContent('Speech to text conversion would happen here')
+        }
+      }
+      
+      mediaRecorder.start()
+      setIsRecording(true)
+    } catch (err) {
+      console.error('Error accessing microphone:', err)
+      setError('Unable to access microphone. Please check your permissions.')
+    }
+  }
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+      audioStream.getTracks().forEach(track => track.stop())
+      setAudioStream(null)
+      setIsRecording(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (audioStream) {
+        audioStream.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [audioStream])
+
+  const handlePlayPause = async () => {
+    try {
+      if (!isPlaying) {
+        setIsGenerating(true)
+        setError('')
+        
+        let textToSpeak = aiResponse
+        
+        // If no AI response exists, generate one
+        if (!textToSpeak) {
+          const prompt = content.trim() || 'Generate a short, engaging paragraph about any interesting topic.'
+          const generatedContent = await generateContent(prompt)
+          setAiResponse(generatedContent)
+          textToSpeak = generatedContent
+        }
+        
+        // Generate speech from the text
+        const audioUrl = await generateSpeech(textToSpeak, selectedVoice)
+        
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current = null
+        }
+        
+        const audio = new Audio(audioUrl)
+        audio.onended = () => {
+          setIsPlaying(false)
+          audio.src = ''
+          URL.revokeObjectURL(audioUrl)
+        }
+        
+        audioRef.current = audio
+        await audio.play()
+        
         setIsGenerating(false)
         setIsPlaying(true)
-      }, 1500)
-    } else {
+      } else {
+        if (audioRef.current) {
+          audioRef.current.pause()
+          audioRef.current = null
+        }
+        setIsPlaying(false)
+      }
+    } catch (err) {
+      console.error('Error:', err)
+      let errorMessage = 'Failed to generate audio. Please try again.'
+      if (err.message.includes('API key')) {
+        errorMessage = 'Invalid API key. Please check your OpenAI API key configuration.'
+      } else if (err.message.includes('insufficient_quota')) {
+        errorMessage = 'OpenAI API quota exceeded. Please check your usage limits.'
+      }
+      setError(errorMessage)
+      setIsGenerating(false)
       setIsPlaying(false)
     }
   }
@@ -174,33 +281,144 @@ function Create() {
         elevation={3}
         sx={{
           p: 4,
-          background: 'black',
+          bgcolor: 'black',
           color: 'white',
           borderRadius: '16px',
         }}
       >
-        <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4, color: '#333' }}>
+        <Typography variant="h4" gutterBottom sx={{ textAlign: 'center', mb: 4, color: 'white' }}>
           Create Audio Content
         </Typography>
 
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, color: 'white', '& .MuiAlert-message': { color: 'white' } }}>
+            {error}
+          </Alert>
+        )}
         <Stack spacing={3}>
-          <TextField
-            fullWidth
-            multiline
-            rows={6}
-            label="Type your content here"
-            value={content}
-            onChange={handleContentChange}
-            variant="outlined"
-            placeholder="Start typing what you want to hear..." sx={{ color: 'black', '::placeholder': { color: 'black' } }}
-          />
+          <Box sx={{ position: 'relative', width: '100%' }}>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Type your content or question here"
+              value={content}
+              onChange={handleContentChange}
+              variant="outlined"
+              placeholder="Start typing what you want to hear or ask a question..."
+              sx={{
+              mb: 2,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'black',
+                color: 'white',
+                '& fieldset': {
+                  borderColor: 'white',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'white',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'white',
+                }
+              },
+              '& .MuiInputLabel-root': {
+                color: 'white',
+                '&.Mui-focused': {
+                  color: 'white'
+                }
+              },
+              '& .MuiOutlinedInput-input::placeholder': {
+                color: 'rgba(255, 255, 255, 0.7)'
+              }
+            }}
+            />
+            <IconButton
+              onClick={isRecording ? stopRecording : startRecording}
+              sx={{
+                position: 'absolute',
+                right: 16,
+                bottom: 16,
+                color: isRecording ? 'red' : 'white',
+                '&:hover': {
+                  color: isRecording ? '#ff4444' : '#dddddd',
+                },
+              }}
+            >
+              {isRecording ? <MicOffIcon /> : <MicIcon />}
+            </IconButton>
+          </Box>
 
-          <FormControl fullWidth>
-            <InputLabel>Select Voice</InputLabel>
+          {aiResponse && (
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="AI Response"
+              value={aiResponse}
+              InputProps={{ 
+                readOnly: true,
+                style: { color: 'white' }
+              }}
+              variant="outlined"
+              sx={{
+                mb: 2,
+                backgroundColor: 'black',
+                '& .MuiOutlinedInput-root': {
+                  color: 'white',
+                  '& fieldset': {
+                    borderColor: 'white',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'white',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'white',
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'white',
+                  '&.Mui-focused': {
+                    color: 'white'
+                  }
+                }
+              }}
+            />
+          )}
+
+          <FormControl fullWidth sx={{
+            '& .MuiOutlinedInput-root': {
+              color: 'white',
+              '& fieldset': {
+                borderColor: 'white',
+              },
+              '&:hover fieldset': {
+                borderColor: 'white',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: 'white',
+              }
+            },
+            '& .MuiInputLabel-root': {
+              color: 'white',
+              '&.Mui-focused': {
+                color: 'white'
+              }
+            },
+            '& .MuiSelect-icon': {
+              color: 'white'
+            }
+          }}>
+            <InputLabel sx={{ color: 'white' }}>Select Voice</InputLabel>
             <Select
               value={selectedVoice}
               onChange={handleVoiceChange}
               label="Select Voice"
+              sx={{
+                color: 'white',
+                '& .MuiMenuItem-root': {
+                  color: 'black'
+                }
+              }}
             >
               {voices.map((voice) => (
                 <MenuItem key={voice.id} value={voice.id}>
@@ -219,12 +437,13 @@ function Create() {
               sx={{
                 minWidth: 200,
                 py: 1.5,
-                background: 'linear-gradient(45deg, #FF0000 30%, #FF3333 90%)',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #FF3333 30%, #FF6666 90%)',
-                },
                 background: 'black',
-                color: 'white',
+              color: 'white',
+              border: '1px solid white',
+              '&:hover': {
+                background: '#333',
+                borderColor: 'white'
+              },
               }}
             >
               {isGenerating ? 'Generating...' : isPlaying ? 'Stop' : 'Preview'}
